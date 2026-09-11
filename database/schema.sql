@@ -1,97 +1,146 @@
--- Database for Management Data Jemaat Gereja
-CREATE DATABASE IF NOT EXISTS jemaat_gereja;
-USE jemaat_gereja;
+-- Database Schema for Aplikasi Manajemen Jemaat
+-- Created: 2024-01-15
 
--- Table: Users (Admin)
+-- Create Database
+CREATE DATABASE IF NOT EXISTS jemaat_db;
+USE jemaat_db;
+
+-- ===================================
+-- Users Table
+-- ===================================
 CREATE TABLE IF NOT EXISTS users (
   id INT PRIMARY KEY AUTO_INCREMENT,
-  username VARCHAR(100) UNIQUE NOT NULL,
+  username VARCHAR(50) UNIQUE NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  nama_lengkap VARCHAR(150),
-  role ENUM('admin', 'superadmin') DEFAULT 'admin',
-  status ENUM('aktif', 'nonaktif') DEFAULT 'aktif',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Table: Gereja
-CREATE TABLE IF NOT EXISTS gereja (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  nama_gereja VARCHAR(255) NOT NULL,
-  alamat_gereja TEXT NOT NULL,
-  nama_pimpinan VARCHAR(150) NOT NULL,
-  logo_gereja LONGBLOB,
-  logo_filename VARCHAR(255),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Table: Sektor
-CREATE TABLE IF NOT EXISTS sektor (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  nama_sektor VARCHAR(100) NOT NULL UNIQUE,
-  nama_ketua INT,
-  nama_sekretaris INT,
-  nama_bendahara INT,
+  role ENUM('admin', 'user') DEFAULT 'user',
+  is_active BOOLEAN DEFAULT TRUE,
+  last_login TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (nama_ketua) REFERENCES jemaat(id),
-  FOREIGN KEY (nama_sekretaris) REFERENCES jemaat(id),
-  FOREIGN KEY (nama_bendahara) REFERENCES jemaat(id)
+  INDEX idx_username (username),
+  INDEX idx_email (email),
+  INDEX idx_is_active (is_active)
 );
 
--- Table: Jemaat
-CREATE TABLE IF NOT EXISTS jemaat (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  nama_lengkap VARCHAR(150) NOT NULL,
-  sektor_id INT NOT NULL,
-  tanggal_lahir DATE NOT NULL,
-  jenis_kelamin ENUM('Pria', 'Wanita') NOT NULL,
-  pekerjaan VARCHAR(100),
-  peran_keluarga VARCHAR(50) NOT NULL,
-  no_hp VARCHAR(20),
-  alamat TEXT,
-  tanggal_baptis DATE,
-  tanggal_sidi VARCHAR(50),
-  tanggal_nikah DATE,
-  jenis_jemaat ENUM('Jemaat Penuh', 'Jemaat Persiapan') NOT NULL,
-  status_jemaat ENUM('Aktif', 'Tidak Aktif') DEFAULT 'Aktif',
-  status_meninggal ENUM('Tidak', 'Ya') DEFAULT 'Tidak',
-  tanggal_meninggal DATE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (sektor_id) REFERENCES sektor(id),
-  INDEX idx_nama_lengkap (nama_lengkap),
-  INDEX idx_sektor_id (sektor_id),
-  INDEX idx_jenis_kelamin (jenis_kelamin),
-  INDEX idx_jenis_jemaat (jenis_jemaat),
-  INDEX idx_status_jemaat (status_jemaat),
-  INDEX idx_tanggal_lahir (tanggal_lahir),
-  INDEX idx_tanggal_meninggal (tanggal_meninggal)
-);
-
--- Add Foreign Key for Sektor after Jemaat is created
-ALTER TABLE sektor ADD FOREIGN KEY (nama_ketua) REFERENCES jemaat(id) ON DELETE SET NULL;
-ALTER TABLE sektor ADD FOREIGN KEY (nama_sekretaris) REFERENCES jemaat(id) ON DELETE SET NULL;
-ALTER TABLE sektor ADD FOREIGN KEY (nama_bendahara) REFERENCES jemaat(id) ON DELETE SET NULL;
-
--- Table: Keluarga (untuk mengelompokkan anggota keluarga)
+-- ===================================
+-- Keluarga Table (Kepala Keluarga)
+-- ===================================
 CREATE TABLE IF NOT EXISTS keluarga (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  sektor_id INT NOT NULL,
-  bapak_id INT,
-  ibu_id INT,
+  id VARCHAR(36) PRIMARY KEY,
+  nama_bapak VARCHAR(100) NOT NULL,
+  nama_ibu VARCHAR(100) NOT NULL,
+  nomor_identitas_bapak VARCHAR(20),
+  nomor_identitas_ibu VARCHAR(20),
+  tempat_lahir_bapak VARCHAR(100),
+  tanggal_lahir_bapak DATE,
+  tempat_lahir_ibu VARCHAR(100),
+  tanggal_lahir_ibu DATE,
+  alamat TEXT,
+  nomor_telepon VARCHAR(15),
+  sektor VARCHAR(5),
+  jumlah_anak INT DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (sektor_id) REFERENCES sektor(id) ON DELETE CASCADE,
-  FOREIGN KEY (bapak_id) REFERENCES jemaat(id) ON DELETE CASCADE,
-  FOREIGN KEY (ibu_id) REFERENCES jemaat(id) ON DELETE CASCADE
+  INDEX idx_nama_bapak (nama_bapak),
+  INDEX idx_sektor (sektor),
+  FULLTEXT idx_alamat (alamat)
 );
 
--- Create indexes for performance
-CREATE INDEX idx_user_username ON users(username);
-CREATE INDEX idx_user_email ON users(email);
-CREATE INDEX idx_jemaat_sektor ON jemaat(sektor_id);
-CREATE INDEX idx_keluarga_bapak ON keluarga(bapak_id);
-CREATE INDEX idx_keluarga_ibu ON keluarga(ibu_id);
+-- ===================================
+-- Jemaat Table (Anggota Jemaat)
+-- ===================================
+CREATE TABLE IF NOT EXISTS jemaat (
+  id VARCHAR(36) PRIMARY KEY,
+  keluarga_id VARCHAR(36) NOT NULL,
+  nama_lengkap VARCHAR(100) NOT NULL,
+  nomor_identitas VARCHAR(20),
+  tanggal_lahir DATE NOT NULL,
+  jenis_kelamin ENUM('Laki-laki', 'Perempuan') NOT NULL,
+  tempat_lahir VARCHAR(100),
+  status ENUM('hidup', 'meninggal') DEFAULT 'hidup',
+  tanggal_meninggal DATE NULL,
+  hubungan_keluarga VARCHAR(50),
+  nomor_telepon VARCHAR(15),
+  email VARCHAR(100),
+  alamat TEXT,
+  pekerjaan VARCHAR(100),
+  pendidikan VARCHAR(50),
+  status_perkawinan ENUM('belum kawin', 'kawin', 'cerai hidup', 'cerai mati') DEFAULT 'belum kawin',
+  tanggal_perkawinan DATE NULL,
+  catatan TEXT,
+  foto VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (keluarga_id) REFERENCES keluarga(id) ON DELETE CASCADE,
+  INDEX idx_nama_lengkap (nama_lengkap),
+  INDEX idx_tanggal_lahir (tanggal_lahir),
+  INDEX idx_jenis_kelamin (jenis_kelamin),
+  INDEX idx_status (status),
+  INDEX idx_keluarga_id (keluarga_id),
+  FULLTEXT idx_nama_alamat (nama_lengkap, alamat)
+);
+
+-- ===================================
+-- Ulang Tahun (View untuk convenience)
+-- ===================================
+CREATE VIEW v_ulang_tahun AS
+SELECT 
+  j.id,
+  j.keluarga_id,
+  j.nama_lengkap,
+  j.nomor_identitas,
+  j.tanggal_lahir,
+  j.jenis_kelamin,
+  j.tempat_lahir,
+  j.nomor_telepon,
+  k.sektor,
+  YEAR(CURDATE()) - YEAR(j.tanggal_lahir) - 
+    (MONTH(CURDATE()) < MONTH(j.tanggal_lahir) OR 
+     (MONTH(CURDATE()) = MONTH(j.tanggal_lahir) AND DAY(CURDATE()) < DAY(j.tanggal_lahir))) AS usia,
+  j.created_at,
+  j.updated_at
+FROM jemaat j
+JOIN keluarga k ON j.keluarga_id = k.id
+WHERE j.status = 'hidup';
+
+-- ===================================
+-- Meninggal (View untuk convenience)
+-- ===================================
+CREATE VIEW v_meninggal AS
+SELECT 
+  j.id,
+  j.keluarga_id,
+  j.nama_lengkap,
+  j.nomor_identitas,
+  j.tanggal_lahir,
+  j.tanggal_meninggal,
+  j.jenis_kelamin,
+  j.tempat_lahir,
+  YEAR(j.tanggal_meninggal) - YEAR(j.tanggal_lahir) - 
+    (MONTH(j.tanggal_meninggal) < MONTH(j.tanggal_lahir) OR 
+     (MONTH(j.tanggal_meninggal) = MONTH(j.tanggal_lahir) AND DAY(j.tanggal_meninggal) < DAY(j.tanggal_lahir))) AS usia_saat_meninggal,
+  k.sektor,
+  j.created_at,
+  j.updated_at
+FROM jemaat j
+JOIN keluarga k ON j.keluarga_id = k.id
+WHERE j.status = 'meninggal';
+
+-- ===================================
+-- Insert Default Admin User
+-- ===================================
+INSERT INTO users (username, email, password, role) 
+VALUES 
+  ('admin', 'admin@jemaat.com', '$2b$10$1234567890123456789012345678901234567890123456789012', 'admin');
+
+-- Note: Password hash di atas adalah placeholder
+-- Gunakan bcrypt untuk hash password yang sebenarnya
+-- Contoh: bcrypt('password', 10)
+
+-- ===================================
+-- Create Indexes untuk Performance
+-- ===================================
+CREATE INDEX idx_jemaat_status_tanggal ON jemaat(status, tanggal_lahir);
+CREATE INDEX idx_jemaat_keluarga_status ON jemaat(keluarga_id, status);
+CREATE INDEX idx_keluarga_sektor_created ON keluarga(sektor, created_at);

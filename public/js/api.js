@@ -1,160 +1,159 @@
-// API Configuration
+// Public API Helper - Frontend Integration
+
 const API_BASE_URL = 'http://localhost:3000/api';
 
-// Helper function untuk get token dari localStorage
-function getToken() {
-    return localStorage.getItem('token');
-}
-
-// Helper function untuk set token
-function setToken(token) {
-    localStorage.setItem('token', token);
-}
-
-// Helper function untuk remove token
-function removeToken() {
-    localStorage.removeItem('token');
-}
-
-// API Call dengan authentication
-function apiCall(endpoint, method = 'GET', data = null) {
-    const options = {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
-        }
-    };
-
-    if (data && (method === 'POST' || method === 'PUT')) {
-        options.body = JSON.stringify(data);
-    }
-
-    return fetch(`${API_BASE_URL}${endpoint}`, options)
-        .then(response => {
-            if (response.status === 401) {
-                // Token expired atau invalid
-                removeToken();
-                window.location.href = '/login.html';
-                throw new Error('Token expired. Please login again.');
-            }
-            return response.json();
-        })
-        .catch(error => {
-            console.error('API Error:', error);
-            throw error;
-        });
-}
-
-// ============ KELUARGA API ============
+// Keluarga API
 const keluargaAPI = {
-    getAll: () => apiCall('/keluarga'),
-    getById: (id) => apiCall(`/keluarga/${id}`),
-    create: (data) => apiCall('/keluarga', 'POST', data),
-    update: (id, data) => apiCall(`/keluarga/${id}`, 'PUT', data),
-    delete: (id) => apiCall(`/keluarga/${id}`, 'DELETE')
+  async getAll(page = 1, limit = 10) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/keluarga?page=${page}&limit=${limit}`, {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching keluarga:', error);
+      throw error;
+    }
+  },
+
+  async getById(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/keluarga/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching keluarga:', error);
+      throw error;
+    }
+  },
+
+  async create(data) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/keluarga`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating keluarga:', error);
+      throw error;
+    }
+  },
+
+  async update(id, data) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/keluarga/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating keluarga:', error);
+      throw error;
+    }
+  },
+
+  async delete(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/keluarga/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Error deleting keluarga:', error);
+      throw error;
+    }
+  }
 };
 
-// ============ ULANG TAHUN API ============
+// Ulang Tahun API
 const ulangTahunAPI = {
-    get: (tanggalAwal, tanggalAkhir) => {
-        let endpoint = '/ulang-tahun?';
-        if (tanggalAwal) endpoint += `tanggal_lahir_awal=${tanggalAwal}&`;
-        if (tanggalAkhir) endpoint += `tanggal_lahir_akhir=${tanggalAkhir}`;
-        return apiCall(endpoint);
+  async get(tanggalAwal, tanggalAkhir, page = 1, limit = 10) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/ulang-tahun?tanggal_lahir_awal=${tanggalAwal}&tanggal_lahir_akhir=${tanggalAkhir}&page=${page}&limit=${limit}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${getToken()}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching ulang tahun:', error);
+      throw error;
     }
+  }
 };
 
-// ============ MENINGGAL API ============
+// Meninggal API
 const meninggalAPI = {
-    get: (bulan, tahun) => {
-        let endpoint = '/meninggal?';
-        if (bulan) endpoint += `bulan=${bulan}&`;
-        if (tahun) endpoint += `tahun=${tahun}`;
-        return apiCall(endpoint);
+  async get(bulan, tahun, page = 1, limit = 10) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/meninggal?bulan=${bulan}&tahun=${tahun}&page=${page}&limit=${limit}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${getToken()}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching meninggal:', error);
+      throw error;
     }
+  }
 };
 
-// ============ KARTU KELUARGA API ============
-const kartuKeluargaAPI = {
-    generate: (keluargaId) => apiCall(`/kartu-keluarga/generate/${keluargaId}`)
-};
-
-// Helper function untuk show alert
-function showAlert(message, type = 'success') {
-    const alertContainer = document.getElementById('alertContainer');
-    if (!alertContainer) return;
-
-    const alertHTML = `
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-            <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-            <strong>${type === 'success' ? 'Sukses!' : 'Error!'}</strong> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-
-    alertContainer.innerHTML = alertHTML;
-
-    // Auto dismiss after 5 seconds
-    setTimeout(() => {
-        alertContainer.innerHTML = '';
-    }, 5000);
+// Token Management
+function getToken() {
+  return localStorage.getItem('token') || '';
 }
 
-// Helper function untuk show loading
-function showLoading(show = true) {
-    const loading = document.getElementById('loading');
-    if (loading) {
-        loading.style.display = show ? 'block' : 'none';
-    }
+function setToken(token) {
+  localStorage.setItem('token', token);
 }
 
-// Helper function untuk show table
-function showTable(show = true) {
-    const table = document.getElementById('tableContainer');
-    if (table) {
-        table.style.display = show ? 'block' : 'none';
-    }
+function removeToken() {
+  localStorage.removeItem('token');
 }
 
-// Helper function untuk calculate age
-function calculateAge(birthDate) {
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-    }
-
-    return age;
+// Date Helper
+function formatDateToInput(date) {
+  const d = new Date(date);
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${day}/${month}/${d.getFullYear()}`;
 }
 
-// Helper function untuk format date
-function formatDate(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric'
-    });
-}
-
-// Helper function untuk format date to dd/mm/yyyy
-function formatDateToInput(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-}
-
-// Helper function untuk parse date from dd/mm/yyyy
-function parseDateFromInput(dateString) {
-    if (!dateString) return null;
-    const parts = dateString.split('/');
-    if (parts.length !== 3) return null;
-    return new Date(parts[2], parts[1] - 1, parts[0]);
+function formatDateDisplay(date) {
+  const d = new Date(date);
+  return d.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 }
